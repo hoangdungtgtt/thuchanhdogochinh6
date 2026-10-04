@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+<title>Luyện đo góc</title>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    html, body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        font-family: 'Segoe UI', Tahoma, sans-serif;
+        background: #2c3e50;
+        overscroll-behavior: none;
+        touch-action: manipulation;
+    }
+
+    .app {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        height: 100dvh;
+    }
+
+    .top-bar {
+        flex-shrink: 0;
+        background: #fff;
+        padding: 6px 8px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+        border-bottom: 2px solid #ddd;
+        z-index: 20;
+    }
+
+    .top-bar .field {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .top-bar label {
+        font-size: 12px;
+        font-weight: 700;
+        color: #555;
+        white-space: nowrap;
+    }
+
+    .top-bar input {
+        flex: 1;
+        padding: 8px;
+        border: 2px solid #ddd;
+        border-radius: 6px;
+        font-size: 14px;
+        min-width: 0;
+    }
+
+    .top-bar input:focus {
+        outline: none;
+        border-color: #667eea;
+    }
+
+    .canvas-area {
+        flex: 1;
+        position: relative;
+        overflow: hidden;
+        background: #fdfdfd;
+        min-height: 0;
+    }
+
+    canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+        touch-action: none;
+        cursor: grab;
+    }
+
+    canvas.grabbing { cursor: grabbing; }
+
+    .zoom-controls {
+        position: absolute;
+        right: 10px;
+        bottom: 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        z-index: 50;
+    }
+
+    .zoom-controls button {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        border: 2px solid #667eea;
+        background: rgba(255,255,255,0.98);
+        color: #667eea;
+        font-size: 24px;
+        font-weight: 800;
+        cursor: pointer;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+        touch-action: manipulation;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+        user-select: none;
+    }
+
+    .zoom-controls button:active {
+        background: #667eea;
+        color: #fff;
+        transform: scale(0.92);
+    }
+
+    /* ===== D-PAD DI CHUYỂN CẢ SCENE ===== */
+    .nudge-pad {
+        position: absolute;
+        left: 10px;
+        bottom: 10px;
+        display: grid;
+        grid-template-columns: repeat(3, 42px);
+        grid-template-rows: repeat(3, 42px);
+        gap: 3px;
+        z-index: 50;
+    }
+
+    .nudge-pad button {
+        width: 42px;
+        height: 42px;
+        border-radius: 8px;
+        border: 2px solid #4caf50;
+        background: rgba(255,255,255,0.98);
+        color: #4caf50;
+        font-size: 20px;
+        font-weight: 800;
+        cursor: pointer;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        touch-action: manipulation;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+        user-select: none;
+        padding: 0;
+    }
+
+    .nudge-pad button:active {
+        background: #4caf50;
+        color: #fff;
+        transform: scale(0.92);
+    }
+
+    .nudge-pad .nudge-up    { grid-column: 2; grid-row: 1; }
+    .nudge-pad .nudge-left  { grid-column: 1; grid-row: 2; }
+    .nudge-pad .nudge-reset {
+        grid-column: 2; grid-row: 2;
+        font-size: 11px;
+        background: #e8f5e9;
+        border-color: #81c784;
+    }
+    .nudge-pad .nudge-right { grid-column: 3; grid-row: 2; }
+    .nudge-pad .nudge-down  { grid-column: 2; grid-row: 3; }
+
+    .bottom-bar {
+        flex-shrink: 0;
+        background: #fff;
+        padding: 6px 8px;
+        border-top: 2px solid #ddd;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        z-index: 20;
+    }
+
+    .rotate-row {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 4px;
+    }
+
+    .rotate-row button {
+        padding: 10px 4px;
+        border: none;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 800;
+        color: #fff;
+        cursor: pointer;
+        touch-action: manipulation;
+        min-height: 42px;
+    }
+
+    .btn-1 { background: #2196f3; }
+    .btn-2 { background: #03a9f4; }
+    .btn-3 { background: #00bcd4; }
+    .btn-4 { background: #009688; }
+    .btn-new { background: linear-gradient(135deg,#667eea,#764ba2); }
+
+    .answer-row {
+        display: grid;
+        grid-template-columns: 1fr auto auto;
+        gap: 5px;
+        align-items: stretch;
+    }
+
+    .answer-row input {
+        padding: 10px;
+        border: 2px solid #ffb300;
+        border-radius: 8px;
+        font-size: 20px;
+        font-weight: 800;
+        color: #e65100;
+        text-align: center;
+        min-width: 0;
+        background: #fff8e1;
+    }
+
+    .answer-row input:focus {
+        outline: none;
+        border-color: #e65100;
+        background: #fff;
+    }
+
+    .answer-row button {
+        padding: 10px 14px;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 800;
+        color: #fff;
+        cursor: pointer;
+        touch-action: manipulation;
+        white-space: nowrap;
+    }
+
+    .btn-check { background: linear-gradient(135deg,#11998e,#38ef7d); }
+    .btn-submit { background: linear-gradient(135deg,#f093fb,#f5576c); }
+    .btn-submit:disabled { background: #ccc; cursor: not-allowed; }
+
+    .status-bar {
+        display: flex;
+        justify-content: space-around;
+        font-size: 12px;
+        color: #555;
+        padding: 3px 0;
+        background: #f8f9fa;
+        border-radius: 6px;
+        font-weight: 600;
+    }
+
+    .status-bar span { color: #667eea; font-weight: 800; }
+
+    .result-popup {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0.8);
+        background: #fff;
+        padding: 24px 28px;
+        border-radius: 16px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+        font-size: 18px;
+        font-weight: 700;
+        text-align: center;
+        max-width: 90vw;
+        z-index: 1000;
+        opacity: 0;
+        pointer-events: none;
+        transition: all 0.3s;
+        border: 4px solid;
+    }
+
+    .result-popup.show {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+        pointer-events: auto;
+    }
+
+    .result-popup.correct { border-color: #28a745; color: #155724; background: #d4edda; }
+    .result-popup.wrong   { border-color: #dc3545; color: #721c24; background: #f8d7da; }
+    .result-popup.info    { border-color: #17a2b8; color: #0c5460; background: #d1ecf1; }
+
+    .result-popup button {
+        margin-top: 14px;
+        padding: 12px 30px;
+        font-size: 15px;
+        font-weight: 800;
+        border: none;
+        border-radius: 50px;
+        background: #333;
+        color: #fff;
+        cursor: pointer;
+        min-width: 120px;
+    }
+
+    .overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.4);
+        z-index: 999;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s;
+    }
+
+    .overlay.show { opacity: 1; pointer-events: auto; }
+
+    @media (max-width: 500px) {
+        .top-bar label { font-size: 11px; }
+        .top-bar input { padding: 7px; font-size: 13px; }
+        .rotate-row button { font-size: 12px; padding: 8px 2px; }
+        .answer-row input { font-size: 18px; }
+        .answer-row button { font-size: 13px; padding: 8px 10px; }
+        .nudge-pad {
+            grid-template-columns: repeat(3, 38px);
+            grid-template-rows: repeat(3, 38px);
+        }
+        .nudge-pad button { width: 38px; height: 38px; font-size: 18px; }
+        .zoom-controls button { width: 42px; height: 42px; font-size: 20px; }
+    }
+</style>
+</head>
+<body>
+<div class="app">
+    <div class="top-bar">
+        <div class="field">
+            <label>👤</label>
+            <input type="text" id="studentName" placeholder="Họ và tên" />
+        </div>
+        <div class="field">
+            <label>🏫</label>
+            <input type="text" id="studentClass" placeholder="Lớp" />
+        </div>
+    </div>
+
+    <div class="canvas-area" id="canvasArea">
+        <canvas id="canvas"></canvas>
+
+        <!-- D-PAD: di chuyển cả scene -->
+        <div class="nudge-pad">
+            <button class="nudge-up"    onclick="nudgeScene(0, -1)">▲</button>
+            <button class="nudge-left"  onclick="nudgeScene(-1, 0)">◀</button>
+            <button class="nudge-reset" onclick="resetScene()" title="Về vị trí gốc">Gốc</button>
+            <button class="nudge-right" onclick="nudgeScene(1, 0)">▶</button>
+            <button class="nudge-down"  onclick="nudgeScene(0, 1)">▼</button>
+        </div>
+
+        <div class="zoom-controls">
+            <button id="btnZoomIn" onclick="zoomIn()" title="Phóng to">＋</button>
+            <button id="btnZoomOut" onclick="zoomOut()" title="Thu nhỏ">－</button>
+            <button id="btnZoomReset" onclick="zoomReset()" title="Về mặc định">⟲</button>
+        </div>
+    </div>
+
+    <div class="bottom-bar">
+        <div class="rotate-row">
+            <button class="btn-1" onclick="rotateProtractor(-1)">↺ -1°</button>
+            <button class="btn-2" onclick="rotateProtractor(-5)">↺ -5°</button>
+            <button class="btn-3" onclick="rotateProtractor(5)">+5° ↻</button>
+            <button class="btn-4" onclick="rotateProtractor(1)">+1° ↻</button>
+            <button class="btn-new" onclick="newAngle()">🎲 Mới</button>
+        </div>
+
+        <div class="answer-row">
+            <input type="number" id="answerInput" placeholder="Nhập số đo (°)" min="0" max="180" step="1" />
+            <button class="btn-check" onclick="checkAnswer()">✓ Kiểm tra</button>
+            <button class="btn-submit" id="submitBtn" onclick="submitResult()" disabled>📤 Gửi</button>
+        </div>
+
+        <div class="status-bar">
+            <div>Lần đo: <span id="attemptCount">0</span></div>
+            <div>Đúng: <span id="correctCount">0</span></div>
+            <div>Trạng thái: <span id="statusText">Chưa đo</span></div>
+        </div>
+    </div>
+</div>
+
+<div class="overlay" id="overlay" onclick="hidePopup()"></div>
+<div class="result-popup" id="resultPopup">
+    <div id="resultText"></div>
+    <button onclick="hidePopup()">OK</button>
+</div>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const canvasArea = document.getElementById('canvasArea');
+
+const API_URL = 'https://script.google.com/macros/s/AKfycbwyGc54RJg2FH5c8tStZpkD9Wux3gLpr4XaXCn8mCvBoRTj4bETqr2ZHOqYCq1gqHncvA/exec';
+
+// ===== TRẠNG THÁI =====
+let angleXOY = 0;
+let oxDirection = 0;
+
+// Đỉnh O của góc trong "không gian scene" (tọa độ gốc)
+let O_base = { x: 0, y: 0 };
+let armLength = 0;
+
+// Thước trong "không gian scene"
+let protractor = {
+    baseCx: 0, baseCy: 0,  // vị trí gốc
+    angle: 0,
+    radius: 0,
+    visible: true,
+    _initialized: false
+};
+
+// ===== PAN TOÀN BỘ SCENE =====
+let panOffset = { x: 0, y: 0 };   // dịch chuyển cả scene
+const PAN_STEP = 8;               // bước nhảy D-PAD
+
+// Vị trí hiện tại của O và tâm thước (đã tính pan)
+function getO() {
+    return { x: O_base.x + panOffset.x, y: O_base.y + panOffset.y };
+}
+function getProtractorCenter() {
+    return {
+        x: protractor.baseCx + panOffset.x,
+        y: protractor.baseCy + panOffset.y
+    };
+}
+
+let dragging = null;      // 'protractor' | 'rotate' | 'pan'
+let dragOffset = { x: 0, y: 0 };
+let panStart = { x: 0, y: 0 };
+let panStartOffset = { x: 0, y: 0 };
+
+let attemptCount = 0;
+let correctCount = 0;
+
+let viewW = 0, viewH = 0;
+
+// ===== TỰ ĐỘNG ĐIỀU CHỈNH KÍCH THƯỚC =====
+function resizeCanvas() {
+    const rect = canvasArea.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+
+    viewW = rect.width;
+    viewH = rect.height;
+
+    canvas.width = viewW * dpr;
+    canvas.height = viewH * dpr;
+    canvas.style.width = viewW + 'px';
+    canvas.style.height = viewH + 'px';
+
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    applyLayout();
+    draw();
+}
+
+function applyLayout() {
+    const W = viewW;
+    const H = viewH;
+
+    const protractorR = Math.max(Math.min(W, H) * 0.34, 120);
+    protractor.radius = protractorR;
+
+    // Vị trí GỐC (base) của góc và thước trong scene — không phụ thuộc pan
+    O_base.x = W * 0.35;
+    O_base.y = Math.min(H * 0.22, 180) + 30;
+
+    armLength = protractorR * 2.2;
+
+    if (!protractor._initialized) {
+        protractor.baseCx = W * 0.68;
+        protractor.baseCy = H - Math.min(H * 0.30, 230);
+        protractor._initialized = true;
+    }
+}
+
+// ===== VẼ =====
+function draw() {
+    ctx.clearRect(0, 0, viewW, viewH);
+    drawGrid();
+    drawAngle();
+    if (protractor.visible) drawProtractor();
+}
+
+function drawGrid() {
+    // Lưới di chuyển theo pan để tạo cảm giác scene dịch chuyển
+    const step = 40;
+    const startX = ((panOffset.x % step) + step) % step;
+    const startY = ((panOffset.y % step) + step) % step;
+
+    ctx.strokeStyle = '#eef0f4';
+    ctx.lineWidth = 1;
+    for (let x = startX; x < viewW; x += step) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, viewH); ctx.stroke();
+    }
+    for (let y = startY; y < viewH; y += step) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(viewW, y); ctx.stroke();
+    }
+}
+
+function toVector(directionDeg, offsetDeg) {
+    const rad = (directionDeg + offsetDeg) * Math.PI / 180;
+    return { x: Math.cos(rad), y: -Math.sin(rad) };
+}
+
+function drawAngle() {
+    const O = getO();
+
+    const vx = toVector(oxDirection, 0);
+    const xEnd = { x: O.x + vx.x * armLength, y: O.y + vx.y * armLength };
+
+    const vy = toVector(oxDirection, angleXOY);
+    const yEnd = { x: O.x + vy.x * armLength, y: O.y + vy.y * armLength };
+
+    const startRad = -oxDirection * Math.PI / 180;
+    const endRad = -(oxDirection + angleXOY) * Math.PI / 180;
+    ctx.beginPath();
+    ctx.arc(O.x, O.y, armLength * 0.20, startRad, endRad, true);
+    ctx.strokeStyle = 'rgba(231, 76, 60, 0.55)';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6, 4]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.lineCap = 'round';
+
+    ctx.beginPath();
+    ctx.moveTo(O.x, O.y);
+    ctx.lineTo(xEnd.x, xEnd.y);
+    ctx.strokeStyle = '#2c3e50';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(O.x, O.y);
+    ctx.lineTo(yEnd.x, yEnd.y);
+    ctx.strokeStyle = '#2c3e50';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    drawArrow(O, xEnd, '#2c3e50');
+    drawArrow(O, yEnd, '#2c3e50');
+
+    ctx.beginPath();
+    ctx.arc(O.x, O.y, 7, 0, Math.PI * 2);
+    ctx.fillStyle = '#e74c3c';
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.font = 'bold 24px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    const bisect = { x: (vx.x + vy.x) / 2, y: (vx.y + vy.y) / 2 };
+    const bLen = Math.hypot(bisect.x, bisect.y) || 1;
+    ctx.fillStyle = '#e74c3c';
+    ctx.fillText('O', O.x - (bisect.x / bLen) * 26, O.y - (bisect.y / bLen) * 26);
+
+    ctx.fillStyle = '#e74c3c';
+    ctx.fillText('x', xEnd.x + vx.x * 26, xEnd.y + vx.y * 26);
+
+    ctx.fillStyle = '#3498db';
+    ctx.fillText('y', yEnd.x + vy.x * 26, yEnd.y + vy.y * 26);
+}
+
+function drawArrow(from, to, color) {
+    const angle = Math.atan2(to.y - from.y, to.x - from.x);
+    const len = 14;
+    ctx.beginPath();
+    ctx.moveTo(to.x, to.y);
+    ctx.lineTo(to.x - len * Math.cos(angle - 0.4), to.y - len * Math.sin(angle - 0.4));
+    ctx.lineTo(to.x - len * Math.cos(angle + 0.4), to.y - len * Math.sin(angle + 0.4));
+    ctx.closePath();
+    ctx.fillStyle = color;
+    ctx.fill();
+}
+
+// ===== VẼ THƯỚC =====
+function drawProtractor() {
+    const center = getProtractorCenter();
+    const cx = center.x, cy = center.y;
+    const radius = protractor.radius;
+    const rad = protractor.angle * Math.PI / 180;
+
+    const scale = radius / 120;
+    const knobOffset = 24 * scale;
+    const knobRadius = 11 * scale;
+
+    const fontSizeBig = Math.max(14 * Math.min(scale, 1.5), 12);
+    const fontSizeSmall = Math.max(11 * Math.min(scale, 1.5), 9);
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(rad);
+
+    ctx.beginPath();
+    ctx.arc(0, 0, radius, Math.PI, 2 * Math.PI);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(255, 245, 180, 0.75)';
+    ctx.fill();
+    ctx.strokeStyle = '#d4a017';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(-radius, 0);
+    ctx.lineTo(radius, 0);
+    ctx.strokeStyle = '#d4a017';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    for (let deg = 0; deg <= 180; deg++) {
+        const ang = -deg * Math.PI / 180;
+        const x1 = Math.cos(ang) * radius;
+        const y1 = Math.sin(ang) * radius;
+
+        let len = 5 * scale, width = 0.7 * scale, color = '#8a6d00';
+        if (deg % 10 === 0) { len = 15 * scale; width = 1.6 * scale; color = '#5a4400'; }
+        else if (deg % 5 === 0) { len = 9 * scale; width = 1 * scale; color = '#7a5f00'; }
+
+        const x2 = Math.cos(ang) * (radius - len);
+        const y2 = Math.sin(ang) * (radius - len);
+
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = width;
+        ctx.stroke();
+    }
+
+    ctx.font = `bold ${fontSizeBig}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    for (let deg = 0; deg <= 180; deg += 10) {
+        const ang = -deg * Math.PI / 180;
+        const rr = radius - 24 * scale;
+        ctx.fillStyle = '#c0392b';
+        ctx.fillText(deg, Math.cos(ang) * rr, Math.sin(ang) * rr);
+    }
+
+    ctx.font = `bold ${fontSizeSmall}px Arial`;
+    for (let deg = 0; deg <= 180; deg += 10) {
+        const ang = -deg * Math.PI / 180;
+        const rr = radius - 46 * scale;
+        ctx.fillStyle = '#2980b9';
+        ctx.fillText(180 - deg, Math.cos(ang) * rr, Math.sin(ang) * rr);
+    }
+
+    ctx.beginPath();
+    ctx.moveTo(-radius, 0);
+    ctx.lineTo(radius, 0);
+    ctx.strokeStyle = '#5a4400';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(0, -radius);
+    ctx.strokeStyle = '#d4a017';
+    ctx.lineWidth = 1.8;
+    ctx.setLineDash([6, 5]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.beginPath();
+    ctx.arc(0, 0, 11 * scale, 0, Math.PI * 2);
+    ctx.fillStyle = '#ff9800';
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(0, 0, 3.5 * scale, 0, Math.PI * 2);
+    ctx.fillStyle = '#fff';
+    ctx.fill();
+
+    const knobY = -radius - knobOffset;
+    ctx.beginPath();
+    ctx.moveTo(0, -radius);
+    ctx.lineTo(0, knobY);
+    ctx.strokeStyle = '#ff5722';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(0, knobY, knobRadius, 0, Math.PI * 2);
+    ctx.fillStyle = '#ff5722';
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, knobY, knobRadius * 0.55, 0.3, Math.PI * 1.4);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(0, knobY - knobRadius * 0.85);
+    ctx.lineTo(-knobRadius * 0.35, knobY - knobRadius * 0.35);
+    ctx.lineTo(knobRadius * 0.35, knobY - knobRadius * 0.35);
+    ctx.closePath();
+    ctx.fillStyle = '#fff';
+    ctx.fill();
+
+    ctx.restore();
+}
+
+// ===== TẠO GÓC MỚI =====
+function newAngle() {
+    angleXOY = (Math.floor(Math.random() * 29) + 4) * 5;
+
+    const dirs = [-75, -60, -45, -30, -15, 15, 30, 45, 60, 75];
+    oxDirection = dirs[Math.floor(Math.random() * dirs.length)];
+
+    // Reset vị trí thước (base) + góc xoay ngẫu nhiên
+    protractor.baseCx = viewW * 0.68;
+    protractor.baseCy = viewH - Math.min(viewH * 0.30, 230);
+    const rots = [-70, -50, -35, -20, 20, 35, 50, 70, 110, 130, 160, -110, -130, -160];
+    protractor.angle = rots[Math.floor(Math.random() * rots.length)];
+
+    // Reset pan
+    panOffset = { x: 0, y: 0 };
+
+    document.getElementById('answerInput').value = '';
+    draw();
+}
+
+// ===== D-PAD: DI CHUYỂN CẢ SCENE =====
+function nudgeScene(dx, dy) {
+    panOffset.x += dx * PAN_STEP;
+    panOffset.y += dy * PAN_STEP;
+    draw();
+}
+
+function resetScene() {
+    panOffset = { x: 0, y: 0 };
+    draw();
+}
+
+// ===== TƯƠNG TÁC =====
+function getPos(e, touch) {
+    const rect = canvas.getBoundingClientRect();
+    const sx = viewW / rect.width;
+    const sy = viewH / rect.height;
+    let cx, cy;
+
+    if (touch) {
+        cx = touch.clientX;
+        cy = touch.clientY;
+    } else if (e.touches && e.touches[0]) {
+        cx = e.touches[0].clientX;
+        cy = e.touches[0].clientY;
+    } else {
+        cx = e.clientX;
+        cy = e.clientY;
+    }
+    return { x: (cx - rect.left) * sx, y: (cy - rect.top) * sy };
+}
+
+function findTarget(pos) {
+    if (!protractor.visible) return null;
+
+    const center = getProtractorCenter();
+    const cx = center.x, cy = center.y;
+    const radius = protractor.radius;
+
+    const scale = radius / 120;
+    const knobOffset = 24 * scale;
+    const knobRadius = 11 * scale;
+
+    const rad = protractor.angle * Math.PI / 180;
+    const dx = pos.x - cx;
+    const dy = pos.y - cy;
+    const lx = dx * Math.cos(-rad) - dy * Math.sin(-rad);
+    const ly = dx * Math.sin(-rad) + dy * Math.cos(-rad);
+
+    const knobY = -radius - knobOffset;
+    if (Math.hypot(lx, ly - knobY) < knobRadius + 15) {
+        return { type: 'rotate' };
+    }
+    if (Math.hypot(lx, ly) < 22) return { type: 'protractor' };
+    if (ly <= 0 && Math.hypot(lx, ly) <= radius + 12) return { type: 'protractor' };
+
+    // Ngoài thước → pan scene
+    return { type: 'pan' };
+}
+
+let touchState = {
+    mode: null,
+    startDist: 0,
+    startZoom: 1
+};
+
+canvas.addEventListener('mousedown', onDown);
+canvas.addEventListener('mousemove', onMove);
+canvas.addEventListener('mouseup', onUp);
+canvas.addEventListener('mouseleave', onUp);
+
+canvas.addEventListener('touchstart', onTouchStart, { passive: false });
+canvas.addEventListener('touchmove', onTouchMove, { passive: false });
+canvas.addEventListener('touchend', onTouchEnd, { passive: false });
+canvas.addEventListener('touchcancel', onTouchEnd, { passive: false });
+
+function onDown(e) {
+    const pos = getPos(e);
+    const target = findTarget(pos);
+
+    if (target.type === 'protractor') {
+        dragging = 'protractor';
+        const center = getProtractorCenter();
+        dragOffset.x = pos.x - center.x;
+        dragOffset.y = pos.y - center.y;
+        canvas.classList.add('grabbing');
+    } else if (target.type === 'rotate') {
+        dragging = 'rotate';
+        canvas.classList.add('grabbing');
+    } else {
+        // Pan scene
+        dragging = 'pan';
+        panStart.x = pos.x;
+        panStart.y = pos.y;
+        panStartOffset.x = panOffset.x;
+        panStartOffset.y = panOffset.y;
+        canvas.classList.add('grabbing');
+    }
+    draw();
+}
+
+function onMove(e) {
+    if (!dragging) return;
+    const pos = getPos(e);
+
+    if (dragging === 'protractor') {
+        protractor.baseCx = pos.x - dragOffset.x - panOffset.x;
+        protractor.baseCy = pos.y - dragOffset.y - panOffset.y;
+    } else if (dragging === 'rotate') {
+        const center = getProtractorCenter();
+        const dx = pos.x - center.x;
+        const dy = pos.y - center.y;
+        const pointerAngle = Math.atan2(dy, dx) * 180 / Math.PI;
+        protractor.angle = pointerAngle + 90;
+    } else if (dragging === 'pan') {
+        panOffset.x = panStartOffset.x + (pos.x - panStart.x);
+        panOffset.y = panStartOffset.y + (pos.y - panStart.y);
+    }
+    draw();
+}
+
+function onUp() {
+    dragging = null;
+    canvas.classList.remove('grabbing');
+}
+
+function onTouchStart(e) {
+    e.preventDefault();
+
+    if (e.touches.length === 2) {
+        touchState.mode = 'pinch';
+        touchState.startDist = getTouchDistance(e.touches[0], e.touches[1]);
+        touchState.startZoom = currentZoom;
+        dragging = null;
+    } else if (e.touches.length === 1) {
+        touchState.mode = 'touch-drag';
+        const pos = getPos(e, e.touches[0]);
+        const target = findTarget(pos);
+
+        if (target.type === 'protractor') {
+            dragging = 'protractor';
+            const center = getProtractorCenter();
+            dragOffset.x = pos.x - center.x;
+            dragOffset.y = pos.y - center.y;
+        } else if (target.type === 'rotate') {
+            dragging = 'rotate';
+        } else {
+            dragging = 'pan';
+            panStart.x = pos.x;
+            panStart.y = pos.y;
+            panStartOffset.x = panOffset.x;
+            panStartOffset.y = panOffset.y;
+        }
+        draw();
+    }
+}
+
+function onTouchMove(e) {
+    e.preventDefault();
+
+    if (touchState.mode === 'pinch' && e.touches.length === 2) {
+        const dist = getTouchDistance(e.touches[0], e.touches[1]);
+        const ratio = dist / touchState.startDist;
+        const newZoom = Math.max(0.5, Math.min(touchState.startZoom * ratio, 4));
+        currentZoom = newZoom;
+        applyZoom();
+        return;
+    }
+
+    if (touchState.mode === 'touch-drag' && e.touches.length === 1 && dragging) {
+        const pos = getPos(e, e.touches[0]);
+
+        if (dragging === 'protractor') {
+            protractor.baseCx = pos.x - dragOffset.x - panOffset.x;
+            protractor.baseCy = pos.y - dragOffset.y - panOffset.y;
+        } else if (dragging === 'rotate') {
+            const center = getProtractorCenter();
+            const dx = pos.x - center.x;
+            const dy = pos.y - center.y;
+            const pointerAngle = Math.atan2(dy, dx) * 180 / Math.PI;
+            protractor.angle = pointerAngle + 90;
+        } else if (dragging === 'pan') {
+            panOffset.x = panStartOffset.x + (pos.x - panStart.x);
+            panOffset.y = panStartOffset.y + (pos.y - panStart.y);
+        }
+        draw();
+    }
+}
+
+function onTouchEnd(e) {
+    e.preventDefault();
+
+    if (e.touches.length === 0) {
+        touchState.mode = null;
+        dragging = null;
+    } else if (e.touches.length === 1 && touchState.mode === 'pinch') {
+        touchState.mode = null;
+        dragging = null;
+    }
+}
+
+function getTouchDistance(t1, t2) {
+    const dx = t1.clientX - t2.clientX;
+    const dy = t1.clientY - t2.clientY;
+    return Math.hypot(dx, dy);
+}
+
+// ===== ZOOM =====
+let currentZoom = 1;
+
+function applyZoom() {
+    canvasArea.style.transformOrigin = 'center center';
+    canvasArea.style.transform = `scale(${currentZoom})`;
+    canvasArea.style.transition = 'transform 0.15s ease-out';
+    updateZoomDisplay();
+}
+
+function updateZoomDisplay() {
+    document.getElementById('btnZoomIn').style.opacity = currentZoom >= 4 ? 0.4 : 1;
+    document.getElementById('btnZoomOut').style.opacity = currentZoom <= 0.5 ? 0.4 : 1;
+}
+
+function zoomIn() {
+    currentZoom = Math.min(currentZoom + 0.25, 4);
+    applyZoom();
+}
+
+function zoomOut() {
+    currentZoom = Math.max(currentZoom - 0.25, 0.5);
+    applyZoom();
+}
+
+function zoomReset() {
+    currentZoom = 1;
+    applyZoom();
+}
+
+function rotateProtractor(d) {
+    protractor.angle += d;
+    draw();
+}
+
+// ===== KIỂM TRA =====
+function checkAnswer() {
+    const answer = parseFloat(document.getElementById('answerInput').value);
+
+    if (isNaN(answer)) {
+        showPopup('⚠️ Vui lòng nhập kết quả đo!', 'info');
+        return;
+    }
+    if (answer < 0 || answer > 180) {
+        showPopup('⚠️ Số đo phải trong khoảng 0°–180°!', 'info');
+        return;
+    }
+
+    attemptCount++;
+    document.getElementById('attemptCount').textContent = attemptCount;
+
+    const diff = Math.abs(answer - angleXOY);
+
+    if (diff <= 1) {
+        correctCount++;
+        document.getElementById('correctCount').textContent = correctCount;
+        document.getElementById('statusText').textContent = 'Đã đo đúng';
+        showPopup('✅ Đo chính xác!\nSố đo đúng là ' + angleXOY + '°.', 'correct');
+        document.getElementById('submitBtn').disabled = false;
+    } else {
+        document.getElementById('statusText').textContent = 'Đo sai';
+        showPopup('❌ Chưa chính xác!\nHãy đo lại cẩn thận hơn.', 'wrong');
+    }
+}
+
+function showPopup(msg, type) {
+    const popup = document.getElementById('resultPopup');
+    const text = document.getElementById('resultText');
+    const overlay = document.getElementById('overlay');
+    text.textContent = msg;
+    text.style.whiteSpace = 'pre-line';
+    popup.className = 'result-popup ' + type + ' show';
+    overlay.classList.add('show');
+}
+
+function hidePopup() {
+    document.getElementById('resultPopup').classList.remove('show');
+    document.getElementById('overlay').classList.remove('show');
+}
+window.hidePopup = hidePopup;
+
+// ===== GỬI KẾT QUẢ =====
+async function submitResult() {
+    const name = document.getElementById('studentName').value.trim();
+    const cls = document.getElementById('studentClass').value.trim();
+
+    if (!name) { showPopup('⚠️ Vui lòng nhập họ và tên!', 'info'); return; }
+    if (!cls) { showPopup('⚠️ Vui lòng nhập lớp!', 'info'); return; }
+    if (attemptCount === 0) { showPopup('⚠️ Bạn chưa đo lần nào!', 'info'); return; }
+
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.textContent = '⏳';
+
+    const payload = {
+        name: name,
+        className: cls,
+        attempts: attemptCount,
+        correct: correctCount,
+        angle: angleXOY
+    };
+
+    try {
+        await fetch(API_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(payload)
+        });
+        showPopup('📤 Gửi thành công!\nCảm ơn ' + name + ' (' + cls + ').\nSố lần đo: ' + attemptCount + '.', 'correct');
+        btn.textContent = '✓ Đã gửi';
+    } catch (err) {
+        showPopup('❌ Lỗi khi gửi. Vui lòng thử lại!', 'wrong');
+        btn.disabled = false;
+        btn.textContent = '📤 Gửi';
+    }
+}
+
+// ===== KHỞI ĐỘNG =====
+window.addEventListener('load', () => {
+    resizeCanvas();
+    newAngle();
+    draw();
+});
+
+window.addEventListener('resize', () => {
+    const oldW = viewW, oldH = viewH;
+    resizeCanvas();
+    if (oldW > 0 && oldH > 0 && protractor._initialized) {
+        protractor.baseCx = protractor.baseCx / oldW * viewW;
+        protractor.baseCy = protractor.baseCy / oldH * viewH;
+    }
+    draw();
+});
+
+window.addEventListener('orientationchange', () => {
+    setTimeout(() => resizeCanvas(), 300);
+});
+
+document.addEventListener('gesturestart', (e) => e.preventDefault());
+
+let lastTouchEnd = 0;
+document.addEventListener('touchend', (e) => {
+    const now = Date.now();
+    if (now - lastTouchEnd <= 300) {
+        e.preventDefault();
+    }
+    lastTouchEnd = now;
+}, { passive: false });
+</script>
+</body>
+</html>
